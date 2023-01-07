@@ -1,6 +1,6 @@
-Add as many keyword pings as you want and delete them if those are no longer necessary. All the added pings will be saved into a .json file so you can stop or reboot the bot at any time without having to add the pings all over again.
+Add as many keyword pings as you want and delete them if those are no longer necessary. All the added pings will be saved into a .json file so you can stop or reboot the bot at any time without losing the already added pings.
 
-The bot will ping the linked role to the channel keyword you have set if this one is found in the message content or embeds.
+The bot will ping the role linked to the channel keyword you have set, if the keyword is found in the message content or embeds.
 
 # Instructions
 - Make sure to have all indent privileges enabled for your bot.
