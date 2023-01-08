@@ -4,7 +4,7 @@ from discord.utils import get
 from discord import app_commands
 
 import time
-from constants import BOT_TOKEN, COMMANDS_ROLE, PING_POLLING
+from constants import ADMIN_ROLE, BOT_TOKEN, MEMBER_ROLE, PING_POLLING
 from helpers import add_ping, check_msg_has_keyword, get_pings, save_pings
 
 
@@ -30,7 +30,7 @@ async def on_message(message: discord.Message):
 
             keyword: str = ping["keyword"]
             timestamp: int = ping["pingTimestamp"]
-            role: discord.Role = get(message.guild.roles, id=ping["roleId"])
+            target = get(message.guild.roles, id=ping["roleId"]) if ping["roleId"] else get(message.guild.members, id=ping["memberId"])
             channel: int = ping["channelId"]
 
             if msg_channel == channel:
@@ -43,26 +43,30 @@ async def on_message(message: discord.Message):
 
                     ping["pingTimestamp"] = now
                     
-                    await get(message.guild.channels, id=channel).send(role.mention)
+                    await get(message.guild.channels, id=channel).send(target.mention)
 
         if pings_updated: save_pings(pings)
 
     await client.process_commands(message)
 
 
-@client.tree.command(name="addping", description="Add a new ping.")
-@app_commands.checks.has_role(COMMANDS_ROLE)
-async def add_new_ping(itr: discord.Interaction, target_channel: discord.TextChannel, keyword: str, target_role: discord.Role):
+@client.tree.command(name="add_ping", description="Add a new generic or user based ping.")
+@app_commands.checks.has_role(MEMBER_ROLE)
+async def add_new_ping(itr: discord.Interaction, target_channel: discord.TextChannel, keyword: str, target_role: discord.Role = None):
 
     global pings
 
-    updated_pings = add_ping(target_channel, keyword, target_role)
+    if target_role and not itr.user.get_role(ADMIN_ROLE):
+            
+        await itr.response.send_message("missing permissions")
+
+    updated_pings = add_ping(target_channel, keyword, target_role or itr.user)
 
     pings = updated_pings
 
     await itr.response.send_message("new ping added successfuly")
 
-
+    
 async def delete_ping_autocomplete(itr: discord.Interaction, current: str):
     
     data = []
@@ -70,18 +74,18 @@ async def delete_ping_autocomplete(itr: discord.Interaction, current: str):
     for i, ping in enumerate(pings):
         
         channel: discord.TextChannel = get(itr.guild.channels, id=ping["channelId"])
-        role: discord.Role = get(itr.guild.roles, id=ping["roleId"])
+        target = get(itr.guild.roles, id=ping["roleId"]) if ping["roleId"] else get(itr.guild.members, id=ping["memberId"])
         keyword: str = ping["keyword"]
         
-        if current in (channel.name + role.name + keyword):
+        if current in (channel.name + target.name + keyword):
             
-            data.append(app_commands.Choice(name=f"#{channel.name} @{role.name} {keyword}", value=i))
+            data.append(app_commands.Choice(name=f"#{channel.name} @{target.name} {keyword}", value=i))
 
     return data
 
-@client.tree.command(name="delping", description="Delete a saved ping.")
+@client.tree.command(name="delete_ping", description="Delete a saved ping.")
 @app_commands.autocomplete(ping=delete_ping_autocomplete)
-@app_commands.checks.has_role(COMMANDS_ROLE)
+@app_commands.checks.has_role(ADMIN_ROLE)
 async def delete_ping(itr: discord.Interaction, ping: int):
 
     global pings

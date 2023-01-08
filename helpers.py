@@ -1,4 +1,5 @@
 import json
+from typing import Union
 import discord
 
 def get_pings() -> list:
@@ -13,7 +14,7 @@ def save_pings(new_pings: list):
 
         f.write(json.dumps(new_pings, indent=3))
 
-def add_ping(channel: discord.TextChannel, keyword: str, role: discord.Role) -> list:
+def add_ping(channel: discord.TextChannel, keyword: str, target: Union[discord.Role, discord.Member]) -> list:
 
     pings = get_pings()
     
@@ -21,7 +22,8 @@ def add_ping(channel: discord.TextChannel, keyword: str, role: discord.Role) -> 
         {
             "channelId": channel.id,
             "keyword": keyword,
-            "roleId": role.id,
+            "roleId": target.id if isinstance(target, discord.Role) else None,
+            "memberId": target.id if isinstance(target, discord.Member) else None,
             "pingTimestamp": 0
         }
     )
