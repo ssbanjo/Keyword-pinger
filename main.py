@@ -58,7 +58,7 @@ async def add_new_ping(itr: discord.Interaction, target_channel: discord.TextCha
 
     if target_role and not itr.user.get_role(ADMIN_ROLE):
             
-        await itr.response.send_message("missing permissions")
+        await itr.response.send_message("missing permissions to add generic pings")
 
     updated_pings = add_ping(target_channel, keyword, target_role or itr.user)
 
@@ -85,11 +85,21 @@ async def delete_ping_autocomplete(itr: discord.Interaction, current: str):
 
 @client.tree.command(name="delete_ping", description="Delete a saved ping.")
 @app_commands.autocomplete(ping=delete_ping_autocomplete)
-@app_commands.checks.has_role(ADMIN_ROLE)
+@app_commands.checks.has_role(MEMBER_ROLE)
 async def delete_ping(itr: discord.Interaction, ping: int):
 
     global pings
     
+    target_ping = pings[ping]
+    
+    if target_ping["roleId"] and not itr.user.get_role(ADMIN_ROLE):
+        
+        await itr.response.send_message("missing permissions to delete generic pings")
+    
+    elif target_ping["memberId"] and (target_ping["memberId"] != itr.user.id) and not itr.user.get_role(ADMIN_ROLE):
+        
+        await itr.response.send_message("missing permissions to delete other user pings")
+        
     del pings[ping]
 
     save_pings(pings)
