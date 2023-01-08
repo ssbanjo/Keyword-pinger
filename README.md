@@ -8,4 +8,4 @@ The bot will ping the role or user linked to the channel keyword if the keyword 
 - You must fill the constants.py file with appropriate values before running the bot.
 
 # Instructions
-- A generic ping will be added if the optional camp `target_role` is used, else the ping will be linked to the user sending the command.
+- A generic ping will be added if the optional camp `target_role` is used, else the ping will be linked to the user using the command and this one will be pinged intstead of the optional role.
