@@ -75,13 +75,15 @@ async def delete_ping_autocomplete(itr: discord.Interaction, current: str):
     
     for i, ping in enumerate(pings):
         
-        channel: discord.TextChannel = get(itr.guild.channels, id=ping["channelId"])
-        target = get(itr.guild.roles, id=ping["roleId"]) if ping["roleId"] else get(itr.guild.members, id=ping["memberId"])
-        keyword: str = ping["keyword"]
-        
-        if current in (channel.name + target.name + keyword):
+        if ping["memberId"] == itr.user.id or itr.user.get_role(ADMIN_ROLE):
+
+            channel: discord.TextChannel = get(itr.guild.channels, id=ping["channelId"])
+            target = get(itr.guild.roles, id=ping["roleId"]) if ping["roleId"] else get(itr.guild.members, id=ping["memberId"])
+            keyword: str = ping["keyword"]
             
-            data.append(app_commands.Choice(name=f"#{channel.name} @{target.name} {keyword}", value=i))
+            if current in (channel.name + target.name + keyword):
+                
+                data.append(app_commands.Choice(name=f"#{channel.name} @{target.name} {keyword}", value=i))
 
     return data
 
