@@ -60,11 +60,13 @@ async def add_new_ping(itr: discord.Interaction, target_channel: discord.TextCha
             
         await itr.response.send_message("missing permissions to add generic pings")
 
-    updated_pings = add_ping(target_channel, keyword, target_role or itr.user)
+    else:
+            
+        updated_pings = add_ping(target_channel, keyword, target_role or itr.user)
 
-    pings = updated_pings
+        pings = updated_pings
 
-    await itr.response.send_message("new ping added successfuly")
+        await itr.response.send_message("new ping added successfuly")
 
     
 async def delete_ping_autocomplete(itr: discord.Interaction, current: str):
@@ -99,12 +101,14 @@ async def delete_ping(itr: discord.Interaction, ping: int):
     elif target_ping["memberId"] and (target_ping["memberId"] != itr.user.id) and not itr.user.get_role(ADMIN_ROLE):
         
         await itr.response.send_message("missing permissions to delete other user pings")
-        
-    del pings[ping]
+    
+    else:
+            
+        del pings[ping]
 
-    save_pings(pings)
+        save_pings(pings)
 
-    await itr.response.send_message("ping deleted successfuly")
+        await itr.response.send_message("ping deleted successfuly")
 
 
 @client.tree.error
