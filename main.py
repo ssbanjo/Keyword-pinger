@@ -26,9 +26,12 @@ async def on_message(message: discord.Message):
         msg_channel = message.channel.id
         pings_updated = False
 
+        mentions = []
+        
         for ping in pings:
 
-            keyword: str = ping["keyword"]
+            pkws: str = ping["positiveKeywords"]
+            nkws: str = ping["negativeKeywords"]
             timestamp: int = ping["pingTimestamp"]
             target = get(message.guild.roles, id=ping["roleId"]) if ping["roleId"] else get(message.guild.members, id=ping["memberId"])
             channel: int = ping["channelId"]
@@ -37,36 +40,50 @@ async def on_message(message: discord.Message):
 
                 now = int(time.time())
 
-                if now - timestamp >= PING_POLLING and check_msg_has_keyword(message, keyword):
+                if now - timestamp >= PING_POLLING and check_msg_has_keyword(message, pkws, nkws):
 
                     pings_updated = True
 
                     ping["pingTimestamp"] = now
                     
-                    await get(message.guild.channels, id=channel).send(target.mention)
+                    mentions.append(target.mention)
+                    
+        if mentions:
+            
+            await get(message.guild.channels, id=channel).send(" ".join(mentions))
 
         if pings_updated: save_pings(pings)
 
     await client.process_commands(message)
 
 
-@client.tree.command(name="add_ping", description="Add a new generic or user based ping.")
+@client.tree.command(name="add_ping", description="Add a new role or user based ping.")
 @app_commands.checks.has_role(MEMBER_ROLE)
-async def add_new_ping(itr: discord.Interaction, target_channel: discord.TextChannel, keyword: str, target_role: discord.Role = None):
+async def add_new_ping(itr: discord.Interaction, target_channel: discord.TextChannel, positive_keywords: str, negative_keywords: str = None, target_role: discord.Role = None):
 
     global pings
 
     if target_role and not itr.user.get_role(ADMIN_ROLE):
-            
-        await itr.response.send_message("missing permissions to add generic pings")
+
+        await itr.response.send_message("Missing permissions to add role pings")
 
     else:
+        
+        if not negative_keywords: 
             
-        updated_pings = add_ping(target_channel, keyword, target_role or itr.user)
+            negative_keywords = []
+        
+        else:
+            
+            negative_keywords = negative_keywords.split(",")
+            
+        positive_keywords = positive_keywords.split(",")
+        
+        updated_pings = add_ping(target_channel, positive_keywords, negative_keywords, target_role or itr.user)
 
         pings = updated_pings
 
-        await itr.response.send_message("new ping added successfuly")
+        await itr.response.send_message("New ping added successfuly!")
 
     
 async def delete_ping_autocomplete(itr: discord.Interaction, current: str):
@@ -79,11 +96,12 @@ async def delete_ping_autocomplete(itr: discord.Interaction, current: str):
 
             channel: discord.TextChannel = get(itr.guild.channels, id=ping["channelId"])
             target = get(itr.guild.roles, id=ping["roleId"]) if ping["roleId"] else get(itr.guild.members, id=ping["memberId"])
-            keyword: str = ping["keyword"]
+            pkws: list[str] = "/".join(ping["positiveKeywords"])
+            nkws: list[str] = "/".join(ping["negativeKeywords"])
             
-            if current in (channel.name + target.name + keyword):
+            if current in (channel.name + target.name + pkws + nkws):
                 
-                data.append(app_commands.Choice(name=f"#{channel.name} @{target.name} {keyword}", value=i))
+                data.append(app_commands.Choice(name=f"#{channel.name} @{target.name} +({pkws}) -({nkws})", value=i))
 
     return data
 
@@ -98,11 +116,11 @@ async def delete_ping(itr: discord.Interaction, ping: int):
     
     if target_ping["roleId"] and not itr.user.get_role(ADMIN_ROLE):
         
-        await itr.response.send_message("missing permissions to delete generic pings")
+        await itr.response.send_message("Missing permissions to delete role pings")
     
     elif target_ping["memberId"] and (target_ping["memberId"] != itr.user.id) and not itr.user.get_role(ADMIN_ROLE):
         
-        await itr.response.send_message("missing permissions to delete other user pings")
+        await itr.response.send_message("Missing permissions to delete other user pings")
     
     else:
             
@@ -110,12 +128,12 @@ async def delete_ping(itr: discord.Interaction, ping: int):
 
         save_pings(pings)
 
-        await itr.response.send_message("ping deleted successfuly")
+        await itr.response.send_message("Ping deleted successfuly!")
 
 
 @client.tree.error
 async def on_app_command_error(itr: discord.Interaction, error):
     
-    if isinstance(error, app_commands.errors.MissingRole): await itr.response.send_message("missing permissions")
+    if isinstance(error, app_commands.errors.MissingRole): await itr.response.send_message("Missing permissions")
 
 client.run(BOT_TOKEN)

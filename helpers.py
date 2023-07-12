@@ -1,4 +1,5 @@
 import json
+import string
 from typing import Union
 import discord
 
@@ -14,14 +15,15 @@ def save_pings(new_pings: list):
 
         f.write(json.dumps(new_pings, indent=3))
 
-def add_ping(channel: discord.TextChannel, keyword: str, target: Union[discord.Role, discord.Member]) -> list:
+def add_ping(channel: discord.TextChannel, positive_keywords: list[str], negative_keywords: list[str], target: Union[discord.Role, discord.Member]) -> list:
 
     pings = get_pings()
     
     pings.append(
         {
             "channelId": channel.id,
-            "keyword": keyword,
+            "positiveKeywords": positive_keywords,
+            "negativeKeywords": negative_keywords,
             "roleId": target.id if isinstance(target, discord.Role) else None,
             "memberId": target.id if isinstance(target, discord.Member) else None,
             "pingTimestamp": 0
@@ -32,19 +34,28 @@ def add_ping(channel: discord.TextChannel, keyword: str, target: Union[discord.R
 
     return pings
 
-def check_msg_has_keyword(msg: discord.Message, keyword: str) -> bool:
+def check_msg_has_keyword(msg: discord.Message, positive_keywords: list[str], negative_keywords: list[str]) -> bool:
 
-    keyword = keyword.lower()
+    positive_keywords = [k.lower() for k in positive_keywords]
+    negative_keywords = [k.lower() for k in negative_keywords]
 
-    if keyword in msg.content.lower(): return True
+    txt = _parse_msg_text(msg).lower()
 
+    return all(k in txt for k in positive_keywords) and all(k not in txt for k in negative_keywords)
+
+
+def _parse_msg_text(msg: discord.Message) -> str:
+    
+    txt = msg.content
+    
     for embed in msg.embeds:
+        
+        if embed.title: txt += embed.title
+        if embed.description: txt += embed.description
+        if embed.url: txt += embed.url
 
-        if embed.title and keyword in embed.title.lower(): return True
-        if embed.description and keyword in embed.description.lower(): return True
-        if embed.url and keyword in embed.url.lower(): return True
-
-        if any(keyword in field.value.lower() for field in embed.fields if field.value): return True
-
-    return False
-
+        for field in embed.fields:
+            
+            if field.value: txt += field.value
+    
+    return txt
